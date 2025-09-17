@@ -211,7 +211,7 @@ async function eliminarCertificado(req, res) {
 // Obtener todos los bautismos
 function obtenerTodos(req, res) {
   db.all(
-    "SELECT * FROM certificados_bautismo ORDER BY libroBautizo ASC, folioBautizo ASC, numeroArchivo ASC",
+    "SELECT * FROM certificados_bautismo ORDER BY CAST(libroBautizo AS INTEGER), CAST(folioBautizo AS INTEGER), CAST(numeroArchivo AS INTEGER)",
     [],
     (err, rows) => {
       if (err) {
