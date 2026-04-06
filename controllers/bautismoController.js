@@ -324,9 +324,9 @@ async function estadisticasBautismos(req, res) {
         let totalMujeres = 0;
         let totalNinos = 0;
 
-        let totalPrimerGrupo = 0; // 0 a 1 año
-        let totalSegundoGrupo = 0; // 1 a 7 años
-        let totalTercerGrupo = 0; // mayores de 7 años
+        let grupo0a1 = 0;
+        let grupo1a7 = 0;
+        let grupoMayor7 = 0;
 
         registros.forEach((r) => {
           const mesIndex = mesesOrdenados.indexOf(r.mes?.toLowerCase());
@@ -343,11 +343,11 @@ async function estadisticasBautismos(req, res) {
             );
 
             if (edad <= 1) {
-              totalPrimerGrupo++;
+              grupo0a1++;
             } else if (edad > 1 && edad <= 7) {
-              totalSegundoGrupo++;
+              grupo1a7++;
             } else if (edad > 7) {
-              totalTercerGrupo++;
+              grupoMayor7++;
             }
 
             if (edad < 18) {
@@ -399,9 +399,9 @@ async function estadisticasBautismos(req, res) {
         };
 
         const totalPorGrupo = {
-          totalPrimerGrupo,
-          totalSegundoGrupo,
-          totalTercerGrupo,
+          grupo0a1,
+          grupo1a7,
+          grupoMayor7,
         };
 
         res.json({

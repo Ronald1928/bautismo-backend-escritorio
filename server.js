@@ -3,7 +3,10 @@ const cors = require("cors");
 require("dotenv").config();
 const bautismoRoutes = require("./routes/bautismoRoutes");
 const { db, inicializarTabla } = require("./dbConnection");
-const { hacerBackup } = require("./services/backupService");
+const {
+  verificarSiDebeHacerBackup,
+  iniciarBackupAutomatico,
+} = require("./services/backupService");
 
 const app = express();
 
@@ -29,11 +32,7 @@ inicializarTabla(() => {
 });
 
 // Backup al iniciar
-hacerBackup();
+verificarSiDebeHacerBackup();
 
-setInterval(
-  () => {
-    hacerBackup();
-  },
-  1000 * 60 * 60 * 8,
-); // cada 8 horas
+// Backup automático
+iniciarBackupAutomatico();
