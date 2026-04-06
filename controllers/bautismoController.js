@@ -100,7 +100,7 @@ async function buscarCertificados(req, res) {
           return res.status(500).send("Error en la búsqueda");
         }
         res.json(rows);
-      }
+      },
     );
   } catch (error) {
     console.error("Error en búsqueda:", error);
@@ -139,7 +139,7 @@ async function descargarCertificado(req, res) {
 
           if (!pdfBuffer) {
             console.error(
-              "❌ Descargar PDF: Generar PDF devolvió null o undefined"
+              "❌ Descargar PDF: Generar PDF devolvió null o undefined",
             );
             return res
               .status(500)
@@ -151,7 +151,7 @@ async function descargarCertificado(req, res) {
           res.setHeader("Content-Type", "application/pdf");
           res.setHeader(
             "Content-Disposition",
-            `attachment; filename=certificado_${id}.pdf`
+            `attachment; filename=certificado_${id}.pdf`,
           );
           res.send(pdfBuffer);
         } catch (pdfError) {
@@ -161,7 +161,7 @@ async function descargarCertificado(req, res) {
             details: pdfError.message,
           });
         }
-      }
+      },
     );
   } catch (error) {
     console.error("Error al descargar certificado:", error);
@@ -179,7 +179,7 @@ async function checkIdDisponible(libroBautizo, folioBautizo, numeroArchivo) {
       (err, row) => {
         if (err) return reject(err);
         resolve(row ? false : true); // false = ya existe, true = disponible
-      }
+      },
     );
   });
 }
@@ -200,7 +200,7 @@ async function eliminarCertificado(req, res) {
           return res.status(404).json({ message: "Certificado no encontrado" });
         }
         res.json({ message: "Certificado eliminado correctamente" });
-      }
+      },
     );
   } catch (error) {
     console.error("Error eliminando certificado:", error);
@@ -219,7 +219,7 @@ function obtenerTodos(req, res) {
         return res.status(500).json({ error: "Error al obtener bautismos" });
       }
       res.json(rows);
-    }
+    },
   );
 }
 
@@ -255,7 +255,15 @@ async function estadisticasBautismos(req, res) {
   try {
     const { anio } = req.params;
     db.all(
-      "SELECT LOWER(mesBautismo) AS mes, COUNT(*) AS total FROM certificados_bautismo WHERE anoBautismo = ? GROUP BY LOWER(mesBautismo)",
+      `SELECT 
+       LOWER(mesBautismo) AS mes, 
+       genero,
+       mesNacimiento,
+       anoNacimiento,
+       anoBautismo
+      FROM certificados_bautismo 
+      WHERE anoBautismo = ? 
+      `,
       [anio],
       (err, registros) => {
         if (err) {
@@ -282,18 +290,130 @@ async function estadisticasBautismos(req, res) {
         ];
 
         // Normalizamos el resultado
-        const resultados = mesesOrdenados.map((mes) => {
-          const encontrado = registros.find((r) => r.mes === mes);
-          return { mes, total: encontrado ? encontrado.total : 0 };
+        const resultados = mesesOrdenados.map((mes) => ({
+          mes,
+          total: 0,
+          hombres: 0,
+          mujeres: 0,
+          ninos: 0,
+        }));
+
+        function calcularEdad(anoNac, mesNac, anoBaut, mesBaut) {
+          let edad = anoBaut - anoNac;
+
+          const indexNac = mesesOrdenados.indexOf(mesNac?.toLowerCase());
+          const indexBaut = mesesOrdenados.indexOf(mesBaut?.toLowerCase());
+
+          if (indexBaut < indexNac) {
+            edad--;
+          }
+
+          return edad;
+        }
+
+        let sumaEdadesNinos = 0;
+        let cantidadNinos = 0;
+
+        let sumaEdadesMujeres = 0;
+        let cantidadMujeres = 0;
+
+        let sumaEdadesHombres = 0;
+        let cantidadHombres = 0;
+
+        let totalHombres = 0;
+        let totalMujeres = 0;
+        let totalNinos = 0;
+
+        let totalPrimerGrupo = 0; // 0 a 1 año
+        let totalSegundoGrupo = 0; // 1 a 7 años
+        let totalTercerGrupo = 0; // mayores de 7 años
+
+        registros.forEach((r) => {
+          const mesIndex = mesesOrdenados.indexOf(r.mes?.toLowerCase());
+          if (mesIndex === -1) return;
+
+          resultados[mesIndex].total++;
+
+          if (r.anoNacimiento && r.mesNacimiento) {
+            const edad = calcularEdad(
+              r.anoNacimiento,
+              r.mesNacimiento,
+              r.anoBautismo,
+              r.mes, // mesBautismo ya viene como r.mes
+            );
+
+            if (edad <= 1) {
+              totalPrimerGrupo++;
+            } else if (edad > 1 && edad <= 7) {
+              totalSegundoGrupo++;
+            } else if (edad > 7) {
+              totalTercerGrupo++;
+            }
+
+            if (edad < 18) {
+              // Niños
+              resultados[mesIndex].ninos++;
+              totalNinos++;
+
+              sumaEdadesNinos += edad;
+              cantidadNinos++;
+            } else if (edad >= 18 && r.genero === "Masculino") {
+              // Hombres
+              resultados[mesIndex].hombres++;
+              totalHombres++;
+
+              sumaEdadesHombres += edad;
+              cantidadHombres++;
+            } else if (edad >= 18 && r.genero === "Femenino") {
+              // Mujeres
+              resultados[mesIndex].mujeres++;
+              totalMujeres++;
+
+              sumaEdadesMujeres += edad;
+              cantidadMujeres++;
+            }
+          }
         });
+
+        const promedioEdadNinos =
+          cantidadNinos > 0 ? Math.round(sumaEdadesNinos / cantidadNinos) : 0;
+        const promedioEdadHombres =
+          cantidadHombres > 0
+            ? Math.round(sumaEdadesHombres / cantidadHombres)
+            : 0;
+        const promedioEdadMujeres =
+          cantidadMujeres > 0
+            ? Math.round(sumaEdadesMujeres / cantidadMujeres)
+            : 0;
 
         const totalAnual = resultados.reduce(
           (acc, item) => acc + item.total,
-          0
+          0,
         );
 
-        res.json({ meses: resultados, totalAnual });
-      }
+        const resumenGeneral = {
+          ninos: totalNinos,
+          hombres: totalHombres,
+          mujeres: totalMujeres,
+          total: totalAnual,
+        };
+
+        const totalPorGrupo = {
+          totalPrimerGrupo,
+          totalSegundoGrupo,
+          totalTercerGrupo,
+        };
+
+        res.json({
+          meses: resultados,
+          totalAnual,
+          resumenGeneral,
+          promedioEdadNinos,
+          promedioEdadHombres,
+          promedioEdadMujeres,
+          totalPorGrupo,
+        });
+      },
     );
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error);

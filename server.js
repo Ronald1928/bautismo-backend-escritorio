@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const bautismoRoutes = require("./routes/bautismoRoutes");
 const { db, inicializarTabla } = require("./dbConnection");
+const { hacerBackup } = require("./services/backupService");
 
 const app = express();
 
@@ -12,7 +13,7 @@ app.use(
     origin: ["http://localhost:5173"], // permite frontend local y producción
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 app.use(express.json());
@@ -26,3 +27,13 @@ inicializarTabla(() => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
   });
 });
+
+// Backup al iniciar
+hacerBackup();
+
+setInterval(
+  () => {
+    hacerBackup();
+  },
+  1000 * 60 * 60 * 8,
+); // cada 8 horas
