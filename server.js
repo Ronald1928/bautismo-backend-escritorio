@@ -7,6 +7,7 @@ const {
   verificarSiDebeHacerBackup,
   iniciarBackupAutomatico,
 } = require("./services/backupService");
+const { logger } = require("./dbConnection");
 
 const app = express();
 
@@ -27,7 +28,7 @@ inicializarTabla(() => {
 
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+    logger.info(`Servidor corriendo en puerto ${PORT}`);
   });
 });
 

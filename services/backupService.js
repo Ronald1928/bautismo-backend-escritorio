@@ -1,5 +1,6 @@
-import fs from "fs";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
+const { logger } = require("../dbConnection");
 
 const dbPath = path.join(process.cwd(), "database", "databaseBautismo.sqlite");
 const backupDir = path.join(process.env.USERPROFILE, "BackupsBautiSacrum");
@@ -8,7 +9,7 @@ const lastBackupFile = path.join(backupDir, "lastBackup.json");
 const INTERVALO_HORAS = 8;
 const MAX_BACKUPS = 10;
 
-export function hacerBackup() {
+function hacerBackup() {
   try {
     // Crear carpeta si no existe
     if (!fs.existsSync(backupDir)) {
@@ -25,8 +26,8 @@ export function hacerBackup() {
     guardarUltimaEjecucion();
     limpiarBackups();
   } catch (error) {
-    console.error("No se pudo crear el backup", error.message);
-    console.error(error);
+    logger.error("No se pudo crear el backup", error.message);
+    logger.error(error);
   }
 }
 
@@ -38,12 +39,12 @@ function guardarUltimaEjecucion() {
       JSON.stringify({ ultimaEjecucion: new Date().toISOString() }),
     );
   } catch (error) {
-    console.error("Error guardando fecha de backup:", error.message);
+    logger.error("Error guardando fecha de backup:", error.message);
   }
 }
 
 // Verificar si han pasado 8 horas
-export function verificarSiDebeHacerBackup() {
+function verificarSiDebeHacerBackup() {
   try {
     if (!fs.existsSync(lastBackupFile)) {
       hacerBackup();
@@ -61,7 +62,7 @@ export function verificarSiDebeHacerBackup() {
       hacerBackup();
     }
   } catch (error) {
-    console.error("Error verificando backup:", error.message);
+    logger.error("Error verificando backup:", error.message);
   }
 }
 
@@ -83,12 +84,12 @@ function limpiarBackups() {
       });
     }
   } catch (error) {
-    console.error("Error limpiando backups:", error.message);
+    logger.error("Error limpiando backups:", error.message);
   }
 }
 
 // Ejecutar mientras la app está abierta
-export function iniciarBackupAutomatico() {
+function iniciarBackupAutomatico() {
   setInterval(
     () => {
       hacerBackup();
@@ -96,3 +97,9 @@ export function iniciarBackupAutomatico() {
     INTERVALO_HORAS * 60 * 60 * 1000,
   );
 }
+
+module.exports = {
+  hacerBackup,
+  verificarSiDebeHacerBackup,
+  iniciarBackupAutomatico,
+};

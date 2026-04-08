@@ -1,9 +1,17 @@
 // Importamos sqlite3
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
-//const { app } = require("electron");
 
 const isProd = process.env.NODE_ENV === "production";
+
+const logger = {
+  info: (...args) => {
+    if (!isProd) console.log(...args);
+  },
+  error: (...args) => {
+    console.error(...args);
+  },
+};
 
 let dbPath;
 
@@ -11,19 +19,18 @@ if (isProd) {
   dbPath = path.join(
     process.resourcesPath,
     "database",
-    "databaseBautismo.sqlite"
+    "databaseBautismo.sqlite",
   );
 } else {
   dbPath = path.resolve(__dirname, "./database/databaseBautismo.sqlite");
 }
 
-//const dbPath = path.resolve(__dirname, "./database/databaseBautismo.sqlite");
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error("❌ Error al conectar con SQLite:", err.message);
+    logger.error("❌ Error al conectar con SQLite:", err.message);
   } else {
-    console.log("✅ Conectado a la base de datos SQLite.");
-    console.log("📂 Ruta usada:", dbPath);
+    logger.info("✅ Conectado a la base de datos SQLite.");
+    logger.info("📂 Ruta usada:", dbPath);
   }
 });
 
@@ -69,15 +76,15 @@ function inicializarTabla(callback) {
       `,
       (err) => {
         if (err) {
-          console.error("❌ Error al crear/verificar la tabla:", err.message);
+          logger.error("❌ Error al crear/verificar la tabla:", err.message);
         } else {
-          console.log("📦 Tabla 'certificados_bautismo' lista.");
+          logger.info("📦 Tabla 'certificados_bautismo' lista.");
         }
         if (callback) callback(); // Llamamos al callback cuando ya terminó
-      }
+      },
     );
   });
 }
 
 // Exportamos la conexión para usar en otros archivos
-module.exports = { db, inicializarTabla, dbPath };
+module.exports = { db, inicializarTabla, dbPath, logger };
